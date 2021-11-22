@@ -57,11 +57,6 @@ function App() {
     label: 'Ether',
   });
 
-  useEffect(() => {
-    loadWeb3();
-    loadBlockchainData();
-  }, []);
-
   // const getWeb3 = () =>
   //   new Promise((resolve) => {
   //     window.addEventListener('load', () => {
@@ -89,7 +84,7 @@ function App() {
   //     });
   //   });
 
-  const loadWeb3 = async () => {
+  const loadWeb3 = useCallback(async () => {
     if (window.ethereum) {
       window.web3 = new Web3(window.ethereum);
       await window.ethereum;
@@ -103,9 +98,9 @@ function App() {
     }
 
     console.log(account);
-  };
+  }, [account]);
 
-  const loadBlockchainData = async () => {
+  const loadBlockchainData = useCallback(async () => {
     setLoading(true);
     const maticProvider = new WalletConnectProvider({
       host: config.maticRpc,
@@ -139,12 +134,17 @@ function App() {
     if (networkId === config.maticChainId || networkId === config.ethereumChainId) {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadWeb3();
+    loadBlockchainData();
+  }, [loadBlockchainData, loadWeb3]);
 
   const network = config.network;
   const version = config.version;
 
-  const posClientParent = () => {
+  const posClientParent = useCallback(() => {
     const maticPosClient = new MaticPOSClient({
       network,
       version,
@@ -155,9 +155,9 @@ function App() {
     });
 
     return maticPosClient;
-  };
+  }, [account, maticProvider, network, version]);
 
-  const posClientChild = () => {
+  const posClientChild = useCallback(() => {
     const maticPoSClient = new MaticPOSClient({
       network,
       version,
@@ -168,7 +168,7 @@ function App() {
     });
 
     return maticPoSClient;
-  };
+  }, [account, network, ethereumProvider, version]);
 
   const getMaticPlasmaParent = async () => {
     const maticNetwork = new Network(network, version);
@@ -236,7 +236,9 @@ function App() {
           gasPrice: '10000000000',
         });
 
-        console.log(tx.transactionHash);
+        console.log(x1);
+
+        console.log(tx);
       } catch (err) {
         console.error(err);
       }
@@ -273,7 +275,7 @@ function App() {
     //     amount,
     //   );
     // }
-  }, []);
+  }, [account, posClientParent, selectedToken.label, x1]);
 
   const burn = useCallback(async () => {
     const maticPoSClientChild = posClientChild();
@@ -320,7 +322,7 @@ function App() {
     //       setBurnHash(res.transactionHash);
     //     });
     // }
-  }, []);
+  }, [posClientChild, selectedToken.label, x1]);
 
   const exit = useCallback(async () => {
     const maticPoSClientParent = posClientParent();
@@ -354,7 +356,7 @@ function App() {
     //     .exitSingleERC1155(String(inputValue), { from: account })
     //     .then((res) => console.log('exit p/o', res));
     // }
-  }, []);
+  }, [account, inputValue, selectedToken.label, posClientParent]);
 
   const onChange = (e: ChangeEvent<HTMLInputElement>) => setInputValue(Number(e.target.value));
 
@@ -381,10 +383,7 @@ function App() {
         </select>
       </div>
 
-      <button
-        onClick={deposit}
-        disabled={networkId !== 0 && networkId === config.maticChainId}
-      >{`Deposit ${selectedToken.label}`}</button>
+      <button onClick={deposit}>{`Deposit ${selectedToken.label}`}</button>
       <button
         onClick={burn}
         disabled={networkId !== 0 && networkId === config.ethereumChainId}
